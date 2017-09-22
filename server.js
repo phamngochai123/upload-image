@@ -632,8 +632,7 @@ app.get("/api/get/restaurant", function (req, res) {
   //res.send(sql);
   console.log(sql);
   connection.query(sql, function(err, rows){
-    console.log(rows);
-    res.send(rows);
+    res.json(rows);
   })
 });
 
