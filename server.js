@@ -818,4 +818,8 @@ app.get("/api/get/food/:resId/:cateId", function (req, res) {
     })
 });
 
+app.get("/", function(req, res) {
+    res.send("hello");
+})
+
 server.listen(process.env.PORT || 2000);
