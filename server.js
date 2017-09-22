@@ -629,10 +629,10 @@ app.get("/api/get/user", function (req, res) {
 
 app.get("/api/get/restaurant", function (req, res) {
   let sql = "select id, name, latitude, longitude, minPrices, maxPrices, open, close, address, photoUrl, phone from m_restaurant order by createAt DESC";
-  console.log(sql);
+  res.send(sql);
   connection.query(sql, function(err, rows){
     console.log(rows);
-    res.json(rows);
+    //res.send(rows);
   })
 });
 
