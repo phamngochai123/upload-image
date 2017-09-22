@@ -9,10 +9,10 @@ var urlencodeder = bodyParser.urlencoded({ extended : false });
 var server = require("http").Server(app);
 var io = require("socket.io")(server);
 let connection = mysql.createConnection({
-    host : "http://185.27.134.10",
-    user : "b4_20730991",
+    host : "http://mysql.hostinger.vn",
+    user : "u175770560_admin",
     password : "123456",
-    database : "b4_20730991_lookupfood"
+    database : "u175770560_datn"
 });
 
 app.use(function(req, res, next) {
