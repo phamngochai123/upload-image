@@ -701,14 +701,16 @@ app.get("/api/get/images/restaurant/:id/:from/:to", function(req, res){
 });
 
 app.get("/api/get/restaurant/near/:latitude/:longitude", function(req, res){
-  let sql = "call geoNear(" + req.params.latitude + ", " + req.params.longitude + ")";
+  //let sql = "call geoNear(" + req.params.latitude + ", " + req.params.longitude + ")";
+  let sql = "select * from m_restaurant res ORDER BY SQRT(POWER((res.latitude - " + req.params.latitude + ") * 111.18, 2) + POWER((res.longitude - " + req.params.longitude + ")*96.4069, 2)) ASC";
   connection.query(sql, function(err, rows){
     res.json(rows[0]);
   })
 });
 
 app.get("/api/get/restaurant/nearByRadius/:latitude/:longitude/:radius", function(req, res){
-  let sql = "call geoNearByRadius(" + req.params.latitude + ", " + req.params.longitude + ", " + req.params.radius + ")";
+  //let sql = "call geoNearByRadius(" + req.params.latitude + ", " + req.params.longitude + ", " + req.params.radius + ")";
+  let sql = "select * from m_restaurant res where SQRT(POWER((res.latitude - " + req.params.latitude + ") * 111.18, 2) + POWER((res.longitude - " + req.params.longitude + ")*96.4069, 2)) * 1000 <= radius LIMIT 10";
   connection.query(sql, function(err, rows){
     res.json(rows[0]);
   })
