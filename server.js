@@ -11,7 +11,7 @@ var io = require("socket.io")(server);
 let connection = mysql.createConnection({
     host : "mysql.hostinger.vn",
     user : "u175770560_admin",
-    password : "123456",
+    password : "rYhtLns5aYZI",
     database : "u175770560_datn"
 });
 
