@@ -9,10 +9,14 @@ var urlencodeder = bodyParser.urlencoded({ extended : false });
 var server = require("http").Server(app);
 var io = require("socket.io")(server);
 let connection = mysql.createConnection({
-    host : "sql2.freesqldatabase.com",
-    user : "sql2195756",
-    password : "kD4%qS4%",
-    database : "sql2195756"
+    // host : "sql2.freesqldatabase.com",
+    // user : "sql2195756",
+    // password : "kD4%qS4%",
+    // database : "sql2195756"
+    host : "localhost",
+    user : "root",
+    password : "",
+    database : "db_lookup_food"
 });
 
 app.use(function(req, res, next) {
@@ -20,6 +24,15 @@ app.use(function(req, res, next) {
     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
     next();
 });
+
+app.configure(function() {
+  var hourMs = 1000*60*60;
+  app.use(express.static(__dirname + '/public', { maxAge: hourMs }));
+  app.use(express.directory(__dirname + '/public'));
+  app.use(express.errorHandler());
+});
+
+app.use('/public', express.static(__dirname + '/public'));
 
 io.on("connection", function(socket) {
   console.log("co nguoi ket noi " + socket.id);
@@ -271,7 +284,8 @@ app.post("/deleteMatch", jsonparser, function (req, res) {
 let storage = multer.diskStorage({
     destination : function(req, file, cb){
         "use strict";
-        cb(null, './img')
+        cb(null, 'C:/xampp/htdocs/work/public/images');
+        cb(null, './public/images');
     },
     filename: function (req, file, cb) {
         let d = new Date();
@@ -282,47 +296,19 @@ let storage = multer.diskStorage({
 });
 //update team
 const upload = multer({ storage : storage });
-app.post("/upload", upload.single('file'),jsonparser, (req, res) => {
-    let id = req.body.id;
-    let team = req.body.newTeam;
-    let coach = req.body.newCoach;
-    let image = req.body.newimage;
-    let website = req.body.newwebsite;
-    let address = req.body.newaddress;
-    let phone = req.body.newphone;
-    let fax = req.body.newfax;
-    if(image != ""){
-        image = "img/"+path;
-        let sql = "update tbl_team ";
-        sql += " set team_name = '"+team+"', ";
-        sql += " coach = '"+coach+"', ";
-        sql += " image = '"+image+"', ";
-        sql += " website = '"+website+"', ";
-        sql += " address = '"+address+"', ";
-        sql += " phone = '"+phone+"', ";
-        sql += " fax = '"+fax+"' ";
-        sql += " where id = "+id;
-        connection.query(sql);
-
-    }
-    else {
-        let sql = "update tbl_team ";
-        sql += " set team_name = '"+team+"', ";
-        sql += " coach = '"+coach+"', ";
-        sql += " website = '"+website+"', ";
-        sql += " address = '"+address+"', ";
-        sql += " phone = '"+phone+"', ";
-        sql += " fax = '"+fax+"' ";
-        sql += " where id = "+id;
-        connection.query(sql);
-    }
+app.post("/api/upload/image", upload.single('file'),jsonparser, (req, res) => {
+    let image = "http://127.0.0.1/work/public/images/"+path;
+    console.log(image);
     //console.log(team);
     //connection.query("update tbl_team set team_name = '"+team+"', coach = '"+coach+"', image = '"+image+"', website = '"+website+"', address = '"+address+"', phone = '"+phone+"', fax = '"+fax+"' where id = "+id);
     //connection.query("update tbl_team set team_name = '"+team+"', coach = '"+coach+"',image = '"+image+"', website = '"+website+"', address = '"+address+"', phone = '"+phone+"', fax = '"+fax+"' where id = "+id);
-    res.end();
+    res.send(image);
     //console.log(req.file);
     //res.status(200).send( true );
 });
+
+
+
 app.post("/addteam", upload.single('file'),jsonparser, (req, res) => {
     let team = req.body.newTeam;
     let coach = req.body.newCoach;
@@ -462,8 +448,8 @@ app.get("/DiffrentTeam/:id", function(req, res){
 app.post("/login", jsonparser, function (req, res) {
    let username = req.body.username;
    let sql = "select * ";
-   sql += " from tbl_user ";
-   sql += " where username like '"+username+"'";
+   sql += " from m_user ";
+   sql += " where username like '"+username+"' and type=1";
    connection.query(sql, function (err, rows, fields) {
        res.json(rows);
    })
@@ -628,9 +614,8 @@ app.get("/api/get/user", function (req, res) {
 });
 
 app.get("/api/get/restaurant", function (req, res) {
-  let sql = "select id, name, latitude, longitude, minPrices, maxPrices, open, close, address, photoUrl, phone from m_restaurant order by createAt DESC";
+  let sql = "select id, name, latitude, longitude, minPrices, maxPrices, open, close, address, photoUrl, phone from m_restaurant order by id DESC";
   //res.send(sql);
-  console.log(sql);
   connection.query(sql, function(err, rows){
     res.json(rows);
   })
@@ -653,6 +638,19 @@ app.get("/api/get/comment/:idRestaurant", function(req, res){
   })
 });
 
+app.post("/api/delete/comment", jsonparser,  function(req, res){
+  let id = req.body.id;
+  let sql = "delete from m_comment where id = " + id;
+  connection.query(sql, function(err, rows){
+    if(err){
+        res.send("error");
+    }
+    else{
+        res.send("ok");
+    }
+  })
+});
+
 app.get("/api/get/comment/new/:idRestaurant", function(req, res){
   let resId = req.params.idRestaurant;
   let sql = "select cmt.id, u.fbName, u.picture, cmt.commentDescription, cmt.uId, cmt.resId from m_comment as cmt JOIN m_user as u on cmt.uId = u.id JOIN m_restaurant res on cmt.resId = res.id where cmt.resId = " + resId + " order by cmt.createdAt DESC limit 1";
@@ -665,7 +663,7 @@ app.get("/api/get/comments/:idRestaurant/:from/:to", function(req, res){
   let resId = req.params.idRestaurant;
   let from = req.params.from;
   let to = req.params.to;
-  let sql = "select cmt.id, u.fbName, u.picture, cmt.commentDescription, cmt.uId, cmt.resId from m_comment as cmt JOIN m_user as u on cmt.uId = u.id JOIN m_restaurant res on cmt.resId = res.id where cmt.resId = " + resId + " order by cmt.createdAt DESC limit " + from + ", " + to;
+  let sql = "select res.name, cmt.id, u.fbName, u.picture, cmt.commentDescription, cmt.uId, cmt.resId from m_comment as cmt JOIN m_user as u on cmt.uId = u.id JOIN m_restaurant res on cmt.resId = res.id where cmt.resId = " + resId + " order by cmt.createdAt DESC limit " + from + ", " + to;
   connection.query(sql, function(err, rows){
     res.json(rows);
   })
@@ -687,6 +685,13 @@ app.get("/api/get/restaurant/:key", function(req, res){
 });
 
 app.get("/api/get/info/restaurant/:id", function(req, res){
+  let sql = "select m_restaurant.id, m_province.name province, m_district.name district, m_ward.name ward, m_street.name street, m_restaurant.name, m_restaurant.open, m_restaurant.close, m_restaurant.latitude, m_restaurant.longitude, m_restaurant.minPrices, m_restaurant.maxPrices, m_restaurant.address, m_restaurant.phone, m_restaurant.photoUrl from m_restaurant, m_province, m_district, m_ward, m_street where m_restaurant.provinceId = m_province.id and m_restaurant.districtId = m_district.id and m_restaurant.streetId = m_street.id and m_district.provinceId = m_province.id and m_ward.provinceId = m_province.id and m_ward.districtId = m_district.id and m_street.provinceId = m_province.id and m_street.districtId = m_district.id and m_street.wardId = m_ward.id and m_restaurant.id = " + req.params.id;
+  connection.query(sql, function(err, rows){
+    res.json(rows);
+  })
+});
+
+app.get("/api/get/admin/info/restaurant/:id", function(req, res){
   let sql = "select * from m_restaurant where id = " + req.params.id;
   connection.query(sql, function(err, rows){
     res.json(rows);
@@ -694,7 +699,14 @@ app.get("/api/get/info/restaurant/:id", function(req, res){
 });
 
 app.get("/api/get/images/restaurant/:id/:from/:to", function(req, res){
-  let sql = "select link from m_images where resId = " + req.params.id + " order by createAt DESC limit " + req.params.from + ", " + req.params.to;
+  let sql = "select link, createAt from m_images where resId = " + req.params.id + " order by createAt DESC limit " + req.params.from + ", " + req.params.to;
+  connection.query(sql, function(err, rows){
+    res.json(rows);
+  })
+});
+
+app.get("/api/count/images/restaurant/:id", function(req, res){
+  let sql = "select count(*) as count from m_images where resId = " + req.params.id;
   connection.query(sql, function(err, rows){
     res.json(rows);
   })
@@ -820,7 +832,266 @@ app.get("/api/get/food/:resId/:cateId", function (req, res) {
     connection.query(sqlGet, function(err, rows) {
         res.json(rows);
     })
+})
+
+app.get("/api/get/admin/food/:resId/:from/:to", function (req, res) {
+    let resId = req.params.resId;
+    let from = req.params.from;
+    let to = req.params.to;
+    let sql = "select m_restaurant.name resName, m_category.name cateName, m_food.id, m_food.name, m_food.price from m_food, m_category, m_restaurant where m_food.resId = m_restaurant.id and m_food.cateId = m_category.id and resId = " + resId + " limit " + from + ", " + to;
+    connection.query(sql, function(err, rows){
+        res.json(rows);
+    })
+})
+
+app.get("/api/count/admin/food/:resId", function (req, res) {
+    let resId = req.params.resId;
+
+    let sql = "select count(*) as count from m_food where resId = " + resId;
+    connection.query(sql, function(err, rows){
+        res.json(rows);
+    })
+})
+
+app.get("/api/count/admin/category", function (req, res) {
+    let resId = req.params.resId;
+    let sql = "select count(*) as count from m_category";
+    connection.query(sql, function(err, rows){
+        res.json(rows);
+    })
+})
+
+app.get("/api/get/admin/info/food/:id", function (req, res) {
+    let id = req.params.id;
+    let sql = "select * from m_food where id = " + id;
+    connection.query(sql, function(err, rows){
+        res.json(rows);
+    })
+})
+
+app.get("/api/get/admin/info/category/:id", function (req, res) {
+    let id = req.params.id;
+    let sql = "select * from m_category where id = " + id;
+    connection.query(sql, function(err, rows){
+        res.json(rows);
+    })
+})
+
+app.get("/api/get/include/category", function (req, res) {
+    let sql = "select * from m_category";
+    connection.query(sql, function(err, rows){
+        res.json(rows);
+    })
+})
+
+app.get("/api/get/include/category/:from/:to", function (req, res) {
+    let from = req.params.from;
+    let to = req.params.to;
+    let sql = "select * from m_category limit " + from + ", " + to;
+    connection.query(sql, function(err, rows){
+        if(err){
+            res.send("error")
+        }
+        else
+            res.json(rows);
+    })
+})
+
+app.get("/api/post/food/:resId/:cateId", function (req, res) {
+    let resId = req.params.resId;
+    let cateId = req.params.cateId;
+    let sqlGet = "select m_food.id, m_food.name, m_food.price from m_food where cateId = " + cateId + " and resId = " + resId;
+    connection.query(sqlGet, function(err, rows) {
+        res.json(rows);
+    })
 });
+
+app.post("/api/update/restaurant", jsonparser, function (req, res) {
+    let id = req.body.id;
+    let name = req.body.name;
+    let address = req.body.address;
+    let latitude = req.body.latitude;
+    let longitude = req.body.longitude;
+    let phone = req.body.phone;
+    let minPrices = req.body.minPrices;
+    let maxPrices = req.body.maxPrices;
+    let open = req.body.open;
+    let close = req.body.close;
+    let photoUrl = req.body.photoUrl;
+    let provinceId = parseInt(req.body.provinceId);
+    let districtId = parseInt(req.body.districtId);
+    let wardId = parseInt(req.body.wardId);
+    let streetId = parseInt(req.body.streetId);
+    let sql = `update m_restaurant set provinceId = ${provinceId}, districtId = ${districtId}, wardId = ${wardId}, streetId = ${streetId}, name = '${name}', address = '${address}', latitude = ${latitude}, longitude = ${longitude}, phone = '${phone}', minPrices = ${minPrices}, maxPrices = ${maxPrices}, open = '${open}', close = '${close}', photoUrl = '${photoUrl}' where id = ${id}`;
+    connection.query(sql);
+    res.end();
+});
+
+app.post("/api/update/food", jsonparser, function(req, res) {
+    let name = req.body.name;
+    let id = req.body.id;
+    let price = parseInt(req.body.price);
+    let cateId = parseInt(req.body.cateId);
+    let sql = `update m_food set name = '${name}', price = ${price}, cateId = ${cateId} where id = ${id}`;
+    connection.query(sql, function(err, rows){
+        if(err){
+            res.send("error");
+        }
+        else{
+            res.send("ok");
+        }
+    })
+});
+
+app.post("/api/update/category", jsonparser, function(req, res) {
+    let name = req.body.name;
+    let id = req.body.id;
+    let sql = `update m_category set name = '${name}' where id = ${id}`;
+    connection.query(sql, function(err, rows){
+        if(err){
+            res.send("error");
+        }
+        else{
+            res.send("ok");
+        }
+    })
+});
+
+app.post("/api/post/food", jsonparser, function(req, res) {
+    let name = req.body.name;
+    let resId = parseInt(req.body.resId);
+    let price = parseInt(req.body.price);
+    let cateId = parseInt(req.body.cateId);
+    let sql = `insert into m_food(name, price, cateId, resId) values('${name}',${price}, ${cateId}, ${resId})`;
+    connection.query(sql, function(err, rows){
+        if(err){
+            res.send("error");
+        }
+        else{
+            res.send("ok");
+        }
+    })
+});
+
+app.post("/api/post/category", jsonparser, function(req, res) {
+    let name = req.body.name;
+    let sql = `insert into m_category(name) values('${name}')`;
+    connection.query(sql, function(err, rows){
+        if(err){
+            res.send("error");
+        }
+        else{
+            res.send("ok");
+        }
+    })
+});
+
+app.post("/api/post/restaurant", jsonparser, function (req, res) {
+    let name = req.body.name;
+    let address = req.body.address;
+    let latitude = req.body.latitude;
+    let longitude = req.body.longitude;
+    let phone = req.body.phone;
+    let minPrices = req.body.minPrices;
+    let maxPrices = req.body.maxPrices;
+    let open = req.body.open;
+    let close = req.body.close;
+    let photoUrl = req.body.photoUrl;
+    let provinceId = req.body.provinceId;
+    let districtId = req.body.districtId;
+    let wardId = req.body.wardId;
+    let streetId = req.body.streetId;
+    let sql = `insert into m_restaurant(name, address, latitude, longitude, phone, minPrices, maxPrices, open, close, photoUrl, provinceId, districtId, wardId, streetId) values('${name}', '${address}', ${latitude}, ${longitude}, '${phone}', ${minPrices}, ${maxPrices}, '${open}', '${close}', '${photoUrl}', ${provinceId}, ${districtId}, ${wardId}, ${streetId})`;
+    connection.query(sql);
+    res.end();
+});
+
+app.post("/api/post/admin/delete/restaurant", jsonparser, function (req, res) {
+    let id = req.body.id;
+    let sql = `delete from m_restaurant where id = ${id}`;
+    connection.query(sql);
+    res.end();
+});
+
+app.post("/api/post/admin/delete/category", jsonparser, function (req, res) {
+    let id = req.body.id;
+    let sql = `delete from m_category where id = ${id}`;
+    connection.query(sql, function(err, rows) {
+        if(err){
+            res.send("error");
+        }
+        else{
+            res.send("ok");
+        }
+    });
+});
+
+app.post("/api/post/admin/delete/food", jsonparser, function (req, res) {
+    let id = req.body.id;
+    let sql = `delete from m_food where id = ${id}`;
+    connection.query(sql);
+    res.end();
+});
+
+app.post("/api/post/images/restaurant", jsonparser, function (req, res) {
+    console.log(req.body);
+    let id = parseInt(req.body.resId);
+    let link = req.body.link;
+    let values = "";
+    for(let i=0; i<link.length; i++){
+        if(i == link.length - 1){
+            values += `(${id}, '${link[i]}');`
+        }
+        else
+            values += `(${id}, '${link[i]}'),`
+    }
+    let sql = `insert into m_images(resId, link) values ${values}`;
+    console.log(sql);
+    connection.query(sql, function(err, row) {
+        if(err){
+            res.send("error");
+        }
+        else{
+            res.send("ok");
+        }
+    });
+});
+
+app.get("/api/get/list/province", function(req, res) {
+    let sql = "select * from m_province";
+    connection.query(sql, function(err, rows) {
+        res.json(rows);
+    })
+})
+
+app.get("/api/get/list/district", function(req, res) {
+    let sql = "select * from m_district";
+    connection.query(sql, function(err, rows) {
+        res.json(rows);
+    })
+})
+
+app.get("/api/get/list/ward", function(req, res) {
+    let sql = "select * from m_ward";
+    connection.query(sql, function(err, rows) {
+        res.json(rows);
+    })
+})
+
+app.get("/api/get/list/street", function(req, res) {
+    let sql = "select * from m_street";
+    connection.query(sql, function(err, rows) {
+        res.json(rows);
+    })
+})
+
+app.get("/api/count/restaurant", function(req, res) {
+    let sql = "select count(*) as count from m_restaurant";
+    connection.query(sql, function(err, rows) {
+        res.json(rows);
+    })
+})
+
 
 app.get("/", function(req, res) {
     res.send("hello");
