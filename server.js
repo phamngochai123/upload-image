@@ -278,7 +278,7 @@ app.post("/deleteMatch", jsonparser, function (req, res) {
 let storage = multer.diskStorage({
     destination : function(req, file, cb){
         "use strict";
-        cb(null, 'C:/xampp/htdocs/work/public/images');
+        //cb(null, 'C:/xampp/htdocs/work/public/images');
         cb(null, './public/images');
     },
     filename: function (req, file, cb) {
@@ -291,7 +291,7 @@ let storage = multer.diskStorage({
 //update team
 const upload = multer({ storage : storage });
 app.post("/api/upload/image", upload.single('file'),jsonparser, (req, res) => {
-    let image = "http://127.0.0.1/work/public/images/"+path;
+    let image = "https://lookupf.herokuapp.com/public/images/"+path;
     console.log(image);
     //console.log(team);
     //connection.query("update tbl_team set team_name = '"+team+"', coach = '"+coach+"', image = '"+image+"', website = '"+website+"', address = '"+address+"', phone = '"+phone+"', fax = '"+fax+"' where id = "+id);
