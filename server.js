@@ -1,4 +1,5 @@
 let express = require("express");
+var path = require('path');
 let app = express();
 let mysql = require("mysql");
 let bodyParser = require("body-parser");
@@ -25,14 +26,7 @@ app.use(function(req, res, next) {
     next();
 });
 
-app.configure(function() {
-  var hourMs = 1000*60*60;
-  app.use(express.static(__dirname + '/public', { maxAge: hourMs }));
-  app.use(express.directory(__dirname + '/public'));
-  app.use(express.errorHandler());
-});
-
-app.use('/public', express.static(__dirname + '/public'));
+app.use('/public', express.static(path.join(__dirname + '/public')));
 
 io.on("connection", function(socket) {
   console.log("co nguoi ket noi " + socket.id);
